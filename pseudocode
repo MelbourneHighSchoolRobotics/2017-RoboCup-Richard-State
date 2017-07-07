@@ -1,0 +1,61 @@
+
+//ALL PINS ARE PLACEHOLDER
+
+//COLOUR SENSORS
+#DEFINE COLOUR_FRONT_TRG 0 
+#DEFINE COLOUR_FRONT_IN A0
+#DEFINE COLOUR_LEFT_TRG 1
+#DEFINE COLOUR_LEFT_IN A1
+#DEFINE COLOUR_RIGHT_TRG 2
+#DEFINE COLOUR_RIGHT_IN A2
+
+//IR PIN DEFINITONS
+#DEFINE IR_BACK A3
+
+#DEFINE IR_BACK_LEFT A4
+#DEFINE IR_LEFT A5
+#DEFINE IR_FRONT_LEFT A6
+
+#DEFINE IR_FRONT_CENTER A7
+
+#DEFINE IR_FRONT_RIGHT A8
+#DEFINE IR_RIGHT A9
+#DEFINE IR_BACK_RIGHT A10
+//LIGHT TIME OF FLIGHT SENSORS are over I2C
+
+void setup() {
+    Begin Serial
+    Begin wire communication with compass/IMU and light sensors
+}
+
+void loop() {
+    read from colour, if touching out of bounds{
+        move away
+    }
+    else { // Do IR stuff
+        switch readFromIR() {
+            case 1:
+                move accordingly
+                break;
+            case 2:
+                move accordingly
+                break; // and so on
+            case 3: // WHERE WE HAVE THE BALL
+                haveBallRoutine();
+                break;
+        }
+    }
+}
+
+void readFromIR() {
+    find the one with the strongest signal
+    return movement according to movement.png
+}
+
+void haveBallRoutine() {
+    face forwards
+    find location with light sensors
+    turn to face goal around ball (see movement image )
+    ram forwards/kick
+
+}
