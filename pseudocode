@@ -46,8 +46,11 @@ void loop() {
         }
     }
 }
-
+int IRack = [0,0,0,0,0,0]
 void readFromIR() {
+    for i = 0, i<len(IRack),i++ {
+     IRack[i] =  analogRead(IRpin)   
+    }
     find the one with the strongest signal
     return movement according to movement.png
 }
@@ -58,4 +61,17 @@ void haveBallRoutine() {
     turn to face goal around ball (see movement image )
     ram forwards/kick
 
+}
+
+int rotateToFace(0-360) { // ARGH WORK OUT MATH  NOT DONE YET!!! //TODO TODO 
+    if(facingAngle < newAngle) {
+        if(abs(facingAngle - newAngle)<180)
+            rotate Clockwise;
+        else rotate antiClockWise;
+    }
+    else {
+        if(abs(facingAngle - newAngle)<180)
+            rotate antiClockwise;
+        else rotate clockwise;
+    }
 }
