@@ -8,9 +8,9 @@
 //Maximum IR counter Value (max 255)
 #define MAX_COUNTER 128
 // * The number of IR sensors on the robot.
-#define IR_NUM 2
+#define IR_NUM 3
 // * The pin used for powering all of the IR sensors (in parallel)
-#define IR_UNLOCK_PIN 8
+#define IR_UNLOCK_PIN 23
 // * Enable or disable debug info
 // * No noticable performance impact normally.
 // * To enable, set to 1.  To disable, set to 0
@@ -18,12 +18,12 @@
 // * Sensor to Arduino pin mappings 
 // * Note: Analog sensors follow on from digital pins (or use A0 notation)
 // * If a sensor is broken set it to 255 to disable it
-                //SENSOR: 1  2  3  4  5   6   7   8   9  10  11 12
-byte IRSensors[IR_NUM] = { 13,12};
+                //SENSOR: 1    2 3   4  5   6   7   8   9  10  11 12
+byte IRSensors[IR_NUM] = { 48,50,52}; //TODO rewire missing 53,51too strong
 //----------END IR CONFIG----------//
 
 //----------COLOUR SENSOR CONFIG -------------//
-#define LIGHT_UNLOCK_PIN 1 // Should we turn the colour light on?
+#define LIGHT_UNLOCK_PIN 22 //Digital 22
 #define BLACK_MIN 10
 #define BLACK_MAX 255
 
@@ -31,7 +31,7 @@ byte IRSensors[IR_NUM] = { 13,12};
 #define WHITE_MAX 255
 #define CLR_LIGHT_PIN 10 //Digital colour sensor pin
 #define CLR_NUM 3
-byte CLRSensors[CLR_NUM] = {A0,A1,A2}; //Use A notation for analog colour sensors
+byte CLRSensors[CLR_NUM] = {A0,A1,A2}; //analgog colour sensor pins
 int CLRValues[CLR_NUM];
 byte CLRColours[CLR_NUM]; // 1 for green 2 for black 3 for white
 //--------------END COLOR SENSOR CONFIG-----------//
