@@ -3,18 +3,28 @@
 
 */
 
-
+#include <Wire.h> //used for compass sensor
+#include "Compass.h"
+compass HMC5883L(20,21,0x1E);
+int initialHeading;
 #include "RB_Movement.h"
 #include "RB_Motor.h"
-
+// manual manualMotors reference code
+//      right anti, lef anti, back anticlockwise
+//bot.manualMotors(1,1,1)
 Movement bot(6,7,4,5,2,3); //this creates an instance of the object and sets motor pins
 #define MOTOR_ON 1
+//----------Switch config-------//
+#define CALLIBRATE_PIN 13
+#define RUN_PIN 12
+
+
 //----------IR CONFIG-----------//
 //Maximum IR counter Value (max 255)
 #define MAX_COUNTER 32
 #define MIN_THRESHOLD 10
 // * The number of IR sensors on the robot.
-#define IR_NUM 6
+#define IR_NUM 7
 // * The pin used for powering all of the IR sensors (in parallel)
 #define IR_UNLOCK_PIN 23
 // * Enable or disable debug info
@@ -25,7 +35,9 @@ Movement bot(6,7,4,5,2,3); //this creates an instance of the object and sets mot
 // * Note: Analog sensors follow on from digital pins (or use A0 notation)
 // * If a sensor is broken set it to 255 to disable it
                 //SENSOR: 1   2   3 4  5   6   7   8   9  10  11 12
-byte IRSensors[IR_NUM] = {255,48,50,52,51,49}; 
+byte IRSensors[IR_NUM] = {255,48,50,52,51,49,47}; 
+unsigned long lastBL = 0; //globals for millis for left and right IR
+unsigned long lastBR = 0;
 /**
 48:Front left
 50:Front Mid
@@ -38,11 +50,11 @@ byte IRSensors[IR_NUM] = {255,48,50,52,51,49};
 
 //----------COLOUR SENSOR CONFIG -------------//
 #define LIGHT_UNLOCK_PIN 22 //Digital 22
-#define BLACK_MIN 320
-#define BLACK_MAX 330
+#define BLACK_MIN 300
+#define BLACK_MAX 323
 
-#define WHITE_MIN 320
-#define WHITE_MAX 330
+#define WHITE_MIN 300
+#define WHITE_MAX 323
 #define CLR_LIGHT_PIN 10 //Digital colour sensor pin
 #define CLR_NUM 1
 byte CLRSensors[CLR_NUM] = {A0};//,A1,A2}; //analgog colour sensor pins
@@ -150,6 +162,7 @@ void initCLR() { // temp 26/07/2017
   pinMode(LIGHT_UNLOCK_PIN, OUTPUT);
   digitalWrite(LIGHT_UNLOCK_PIN, HIGH);
 }
+
 void readCLR() {
   for(byte i = 0; i <CLR_NUM;i++) {
     int reading = analogRead(CLRSensors[i]);
@@ -182,57 +195,150 @@ void setup() {
   if (DEBUG) {
     Serial.begin(DEBUG_BAUD_RATE);
   }
-
+  pinMode(CALLIBRATE_PIN,INPUT_PULLUP);
+  pinMode(RUN_PIN,INPUT_PULLUP);
   initIR();
   initCLR();
 
-}
 
+}
+boolean doneCallib = false;
 void loop() {
-  // Read the sensors and get the current reading
-  readIR();
-  /**
-  readCLR();
-  int currentMot[3] = {bot.getMotorVelocity(1),bot.getMotorVelocity(2),bot.getMotorVelocity(3)};
-  int invMot[3] = {0,0,0};
-  for(byte i = 0; i<3;i++) {
-    invMot[i] = currentMot[i] * -1;
-    //Serial.print(invMot[i]);
-  }
-  for(byte i = 0; i<CLR_NUM;i++) {
-    switch(CLRColours[i]) {
-      case 1: //green
-        break;
-      case 2: // boundary - move in the opposite way you were
-        bot.moveStraight(-180,10); // opposite dir doesn't work atm, temp test back
-        //bot.manualMotors(invMot[0],invMot[1],invMot[2]);
-        break;
-      case 3: // black
-        break;
+  
+  boolean run = !digitalRead(RUN_PIN);
+  boolean callibrate = !digitalRead(CALLIBRATE_PIN);
+  /**if (DEBUG) {
+    Serial.print("Run");
+    Serial.print(doneCallib);
+    Serial.print("callibrate");
+    Serial.print(callibrate);
+    Serial.print( " | ");
+  } **/
+  if(callibrate) {
+    if (!doneCallib) {
+      Serial.println("Begin!");
+      delay(500);
+      Serial.print("Callibrating...");
+      bot.moveRotate(30);
+      HMC5883L.calibrate();
+      
+      delay(2000); //rotate for n sec while we callibrate
+      Serial.print("???");
+      bot.allStop();
+      delay(1000);
+      HMC5883L.setZeroBearing();
+      initialHeading = 0; 
+      Serial.println("DONE!");
+      doneCallib = true;
+    }
+}
+  else if (run) {
+    doneCallib = false;
+    // Read the sensors and get the current reading
+    readIR();
+    
+    //readCLR();
+
+    //COLOUR MOVEMENT
+    /**
+    int currentMot[3] = {bot.getMotorVelocity(1),bot.getMotorVelocity(2),bot.getMotorVelocity(3)};
+    int invMot[3] = {0,0,0};
+    for(byte i = 0; i<3;i++) {
+      invMot[i] = currentMot[i] * -1;
+      //Serial.print(invMot[i]);
+    }
+    for(byte i = 0; i<CLR_NUM;i++) {
+      switch(CLRColours[i]) {
+        case 1: //green
+          break;
+        case 2: // boundary - move in the opposite way you were
+          //bot.moveStraight(-180,10); // opposite dir doesn't work atm, temp test back
+          bot.manualMotors(invMot[0],invMot[1],invMot[2]);
+          //bot.allStop();
+          delay(1000);
+          break;
+        case 3: // black
+          break;
+      }
+    }
+    **/
+  // IR MOVEMENT
+    byte lastMov = 0;
+    if(MOTOR_ON == 1) {
+      
+      switch (IR_BEST) { //ultra temp
+        
+        case 0:
+          bot.allStop(); //can't find anything
+          lastMov = 0;
+          break;
+          
+        case 1: //front 
+          //bot.allStop();
+          bot.manualMotors(30,0,-30); //move left
+          //bot.manualMotors(-10,10,30); //rotate left and move forwards
+          lastMov = 1;
+          break;
+        case 2: //straight mid front
+          //bot.allStop();
+          bot.moveStraight(0,30); //?
+          lastMov = 2;
+          break;
+        case 3: //front left
+          //bot.allStop();
+          bot.manualMotors(-30,0,10); //        move right
+          //bot.manualMotors(-10,10,-30); //rotate right and move forwards
+          lastMov = 3;
+          break;
+          
+        case 4://mid right
+          bot.manualMotors(-30,0,30); //MOVE RIGHT is slightly back anyway due to triangle
+        /**
+          if(( millis() - lastBR) < 100) {
+            bot.allStop();
+            bot.moveStraight(-180,10); //move backwards staggered
+            if(( millis() - lastBR > 500)) {
+              lastBL = millis();
+            }
+          }
+          else {
+            bot.allStop();
+            bot.manualMotors(60,0,-60);  //move to the right staggered
+          }
+          **/
+          lastMov = 4;
+          break;
+        case 5: //directly behind
+          bot.manualMotors(60,0,-60); //move to the right (doesn't matter right or left)
+          lastMov = 5;
+          break;
+
+        case 6: //mid left
+          bot.manualMotors(10,0,-10); //move left is slightly back anyway due to triangel
+        /**
+          if(( millis() - lastBL) > 100) {
+            bot.allStop();
+            bot.moveStraight(-180,10); //move backwards staggered
+            if(( millis() - lastBL > 500)) {
+              lastBL = millis();
+            }
+            
+            bot.allStop();
+          }
+          else {
+            bot.allStop();
+            bot.manualMotors(-60,0,60);  //move to the left staggered
+            
+          }
+          **/
+          lastMov = 6;
+          break;
+      }
     }
   }
-**/
-  if(MOTOR_ON == 1) {
-    switch (IR_BEST) { //ultra temp
-      case 0:
-        bot.allStop(); //can't find anything
-        break;
-      case 1: //TODO check about ramping bceause the bot turns when 1 or 2 due to motor bias? 12/08/2017
-        bot.manualMotors(10,0,-10); //move left
-        //bot.manualMotors(-10,10,30); //rotate left and move forwards
-        break;
-      case 2:
-        bot.moveStraight(0,10); //?
-        break;
-      case 3:
-        bot.manualMotors(-10,0,10); //        move right
-        //bot.manualMotors(-10,10,-30); //rotate right and move forwards
-        break;
-      case 4:
-        bot.manualMotors(-10,0,10); //move right again?
-       // bot.manualMotors(0,-10,10);            //move back and right****check******
-      case 5:
-        bot.moveStraight(-180,10); //move backwards
-    }
+  else {
+    bot.allStop();
+    doneCallib = false;
+    Serial.println(HMC5883L.getRealBearing());
   }
 }
