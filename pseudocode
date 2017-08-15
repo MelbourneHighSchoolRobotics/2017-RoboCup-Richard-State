@@ -35,7 +35,7 @@ void loop() {
     else { // Do IR stuff
         switch readFromIR() {
             case 1:
-                move accordingly
+           up     move accordingly
                 break;
             case 2:
                 move accordingly
