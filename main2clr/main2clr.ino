@@ -14,7 +14,7 @@ int initialHeading;
 #include "RB_Movement.h"
 #include "RB_Motor.h"
 
-#define MOVESPEED 60 //define speeds for rotation and for movement
+#define MOVESPEED 100 //define speeds for rotation and for movement
 #define ROTSPEED 30
 // manual manualMotors reference code
 //      right anti, lef anti, back anticlockwise
@@ -42,8 +42,7 @@ Movement bot(6, 7, 4, 5, 3, 2); //this creates an instance of the object and set
 // * Note: Analog sensors follow on from digital pins (or use A0 notation)
 // * If a sensor is broken set it to 255 to disable it
 //SENSOR: 1   2   3 4  5   6   7   8   9  10  11 12
-byte IRSensors[IR_NUM] = {255, 48, 50, 52,53, 255, 49, 47};
-//                                           51 is dead
+byte IRSensors[IR_NUM] = {255, 48, 50, 52,53, 51, 49, 47};
 //SENSOR POSITOINS             FL  MD  FR  
 unsigned long lastBL = 0; //globals for millis for left and right IR
 unsigned long lastBR = 0;
@@ -75,9 +74,9 @@ byte CLRSensors[CLR_NUM] = {A0};//,A1,A2}; //analgog colour sensor pins
 int CLRValues[CLR_NUM];
 byte CLRColours[CLR_NUM]; // 1 for green 2 for black 3 for white
 //--------------END COLOR SENSOR CONFIG-----------//
-#define DEBUG 0 //master (en serial)
+#define DEBUG 1 //master (en serial)
 #define DEBUG_COMPASS 0
-#define DEBUG_IR 0
+#define DEBUG_IR 1
 #define DEBUG_CLR 0
 
 // * The baud rate to use for debugging output
@@ -197,7 +196,7 @@ void readIR() {
   }
 }
 
-void getBestIR() { //heavily based off tris10 example
+void getBestIR() {
   // If finished a block, calculate the best.
   counter = 0; // reset counter
   // * the index of the best sensor
@@ -349,9 +348,42 @@ void loop() {
         IRTrigger = true;
       }
       else {
-        IRTrigger = true;
+        IRTrigger = false;
     }
-    if (colourTrigger) {
+    readCLR();
+    delay(1);
+    CLR0 = analogRead(0);
+    CLR1 = analogRead(1);
+    CLR2 = analogRead(2);
+      if (CLR0 > BLACKMIN0 && CLR0 < BLACKMAX0) {
+        trig1 = true;
+      }
+      else {
+        trig1 = false;
+      }
+      if (CLR1 > BLACKMIN1 && CLR1 > BLACKMAX1) {
+        trig1 = true;
+      }
+      else {
+        trig2 = false;
+      }
+      if (CLR2>BLACKMIN2 && CLR2 > BLACKMAX2) {
+        trig3 = true;
+      }
+      else {
+        trig3 = false;
+      }
+      //or one sensor is invert bot motino
+    if (trig1 || trig2 || trig3) {
+      if (trig1) {
+        //move away
+      }
+      else if (trig2) {
+
+      }
+      else if (trig3) {
+
+      }
 /**
       //COLOUR MOVEMENT
       
@@ -396,25 +428,19 @@ void loop() {
       if (MOTOR_ON == 1) {
         switch (IR_BEST) { //ultra temp
           case 0:
-          /**
+          
             if (lastSearch) {
-              bot.moveRotate(3);
-              delay(30);
-              bot.allStop();
+              bot.moveRotate(ROTSPEED);
             }
             else {
-              bot.moveRotate(-3);
-              delay(30);
-              bot.allStop();
+              bot.moveRotate(-ROTSPEED);
             }
-            **/
-            bot.moveStraight(-180,10);
             lastMov = 0;
             break;
 
           case 1: //front
             //bot.allStop();
-            bot.manualMotors(-30, 0, 30); //move left
+            bot.manualMotors(-MOVESPEED, 0, MOVESPEED); //move left
             //bot.manualMotors(-10,10,30); //rotate left and move forwards
             lastMov = 1;
             break;
@@ -425,7 +451,7 @@ void loop() {
             break;
           case 3: //front left
             //bot.allStop();
-            bot.manualMotors(30, 0, -30); //        move right
+            bot.manualMotors(MOVESPEED, 0, -MOVESPEED); //        move right
             //bot.manualMotors(-10,10,-30); //rotate right and move forwards
             lastMov = 3;
             break;
@@ -453,7 +479,9 @@ void loop() {
             break;
           case 5: //back right
             bot.manualMotors(MOVESPEED, 0, -MOVESPEED); //move to the right (doesn't matter right or left)
-            \
+            delay(100);
+            bot.moveStraight(-180,MOVESPEED);
+            delay(200);
             lastMov = 5;
             break;
 
@@ -484,7 +512,7 @@ void loop() {
       }
     }
     else {
-     //bot.moveRotate(ROTSPEED);
+      //bot.allStop();
     }
   }
   else {
